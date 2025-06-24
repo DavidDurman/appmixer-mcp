@@ -1,0 +1,19 @@
+{
+    "name": "appmixer-mcp",
+    "version": "1.0.5",
+    "main": "index.js",
+    "bin": {
+        "appmixer-mcp": "./index.js"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "Appmixer License",
+    "description": "",
+    "type": "module",
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "1.12.3",
+        "eventsource": "4.0.0"
+    }
+}
