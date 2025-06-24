@@ -1,10 +1,5 @@
 import { EventSource } from 'eventsource';
 
-const APPMIXER_BASE_URL = process.env.APPMIXER_BASE_URL;
-const APPMIXER_ACCESS_TOKEN = process.env.APPMIXER_ACCESS_TOKEN;
-const APPMIXER_USERNAME = process.env.APPMIXER_USERNAME;
-const APPMIXER_PASSWORD = process.env.APPMIXER_PASSWORD;
-
 function isTokenExpired(token) {
     try {
         // Just decode the payload part (no secret needed)
@@ -17,10 +12,17 @@ function isTokenExpired(token) {
 }
 
 export class AppmixerClient {
-  constructor() {
-    this.name = 'Appmixer';
-    this.version = '1.0.0';
-    this.accessToken = APPMIXER_ACCESS_TOKEN;
+  constructor({ baseUrl, accessToken, username, password }) {
+    this.accessToken = accessToken;
+    this.baseUrl = baseUrl;
+    this.username = username
+    this.password = password;
+    if (!this.baseUrl) {
+      throw new Error('Base URL is required for AppmixerClient');
+    }
+    if (!this.accessToken && (!this.username || !this.password)) {
+      throw new Error('Either access token or username and password are required for AppmixerClient');
+    }
   }
 
   async request(url, method = 'GET', body) {
@@ -51,14 +53,14 @@ export class AppmixerClient {
 
   async refreshToken() {
     try {
-      const response = await fetch(`${APPMIXER_BASE_URL}/user/auth`, {
+      const response = await fetch(`${this.baseUrl}/user/auth`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          username: APPMIXER_USERNAME,
-          password: APPMIXER_PASSWORD
+          username: this.username,
+          password: this.password
         })
       });
       if (!response.ok) {
@@ -73,7 +75,7 @@ export class AppmixerClient {
   
   async getFlows() {
     try {
-      return this.request(`${APPMIXER_BASE_URL}/flows`);
+      return this.request(`${this.baseUrl}/flows`);
     } catch (e) {
       console.error(e);
     }
@@ -81,7 +83,7 @@ export class AppmixerClient {
   
   async getFlow(id) {
     try {
-      return this.request(`${APPMIXER_BASE_URL}/flows/${id}`);
+      return this.request(`${this.baseUrl}/flows/${id}`);
     } catch (e) {
       console.error(e);
     }
@@ -89,7 +91,7 @@ export class AppmixerClient {
 
   async deleteFlow(id) {
     try {
-      return this.request(`${APPMIXER_BASE_URL}/flows/${id}`, 'DELETE');
+      return this.request(`${this.baseUrl}/flows/${id}`, 'DELETE');
     } catch (e) {
       console.error(e);
     }
@@ -97,7 +99,7 @@ export class AppmixerClient {
 
   async startFlow(id) {
     try {
-      return this.request(`${APPMIXER_BASE_URL}/flows/${id}/coordinator`, 'POST', {
+      return this.request(`${this.baseUrl}/flows/${id}/coordinator`, 'POST', {
         command: 'start'
       });
     } catch (e) {
@@ -107,7 +109,7 @@ export class AppmixerClient {
 
   async stopFlow(id) {
     try {
-      return this.request(`${APPMIXER_BASE_URL}/flows/${id}/coordinator`, 'POST', {
+      return this.request(`${this.baseUrl}/flows/${id}/coordinator`, 'POST', {
         command: 'stop'
       });
     } catch (e) {
@@ -118,7 +120,7 @@ export class AppmixerClient {
   async triggerComponent(flowId, componentId, method = 'POST', body = '') {
     try {
       const requestBody = body ? JSON.parse(body) : {};
-      return this.request(`${APPMIXER_BASE_URL}/flows/${flowId}/components/${componentId}`, method, requestBody);
+      return this.request(`${this.baseUrl}/flows/${flowId}/components/${componentId}`, method, requestBody);
     } catch (e) {
       console.error(e);
     }
@@ -130,7 +132,7 @@ export class AppmixerClient {
       if (query) {
         queryString += `&query=${encodeURIComponent(query)}`;
       }
-      return this.request(`${APPMIXER_BASE_URL}/logs?${queryString}`);
+      return this.request(`${this.baseUrl}/logs?${queryString}`);
     } catch (e) {
       console.error(e);
     }
@@ -138,7 +140,7 @@ export class AppmixerClient {
 
   async getGateways() {
     try {
-      return this.request(`${APPMIXER_BASE_URL}/plugins/appmixer/ai/mcptools/gateways`);
+      return this.request(`${this.baseUrl}/plugins/appmixer/ai/mcptools/gateways`);
     } catch (e) {
       console.error(e);
     }
@@ -148,7 +150,7 @@ export class AppmixerClient {
     if (!this.accessToken || isTokenExpired(this.accessToken)) {
         this.accessToken = await this.refreshToken();
     }
-    const url = `${APPMIXER_BASE_URL}/plugins/appmixer/ai/mcptools/events?token=${this.accessToken}`;
+    const url = `${this.baseUrl}/plugins/appmixer/ai/mcptools/events?token=${this.accessToken}`;
     const eventSource = new EventSource(url);
 
     eventSource.addEventListener('error', (err) => {

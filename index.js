@@ -1,12 +1,21 @@
+#!/usr/bin/env node
+
 import { AppmixerClient } from './client.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
     ListToolsRequestSchema,
     CallToolRequestSchema
-  } from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/sdk/types.js";
 
-const client = new AppmixerClient();
+const CONFIG_TOOLS = process.env.TOOLS ||  'api,mcpgateway';
+
+const client = new AppmixerClient({
+    baseUrl: process.env.APPMIXER_BASE_URL,
+    accessToken: process.env.APPMIXER_ACCESS_TOKEN,
+    username: process.env.APPMIXER_USERNAME,
+    password: process.env.APPMIXER_PASSWORD
+});
 
 const server = new Server(
     {
@@ -22,8 +31,11 @@ const server = new Server(
     }
 );
 
-const TOOLS = [{
+const API_TOOLS = [{
     name: 'get-flows',
+    annotations: {
+        title: 'Get Flows'
+    },
     description: 'List Appmixer flows.',
     inputSchema: {
         type: 'object'
@@ -37,6 +49,9 @@ const TOOLS = [{
     }
 }, {
     name: 'get-flow',
+    annotations: {
+        title: 'Get Flow'
+    },
     description: 'Get a single Appmixer flow by its ID.',
     inputSchema: {
         type: 'object',
@@ -160,10 +175,14 @@ const TOOLS = [{
     }
 }];
 
+const TOOLS = CONFIG_TOOLS.includes('api') ? API_TOOLS : [];
 
 async function listMCPGatewayTools() {
 
     const tools = [];
+    if (!CONFIG_TOOLS.includes('mcpgateway')) {
+        return tools;
+    }
 
     try {
         const gateways = await client.getGateways();
